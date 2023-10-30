@@ -8,6 +8,8 @@ const server = http.createServer(app)
 const io = new SocketIOServer(server)
 require("dotenv").config()
 
+
+
 app.use(express.json())
 // Security
 // Configure CORS to allow requests from specific domains
@@ -23,31 +25,17 @@ const corsOptions = {
 app.use(cors(corsOptions))
 
 let clientCounter = 0
+let sessions: { [shareCode: string]: { count: number, lastUpdate: string } } = {}
 
 // Express route for serving a simple HTML file
 app.get("/", (req, res) => {
 	res.send("LiveCase socket server is running. It's alive! It's alive!")
 })
 
-app.get("/temp", (req, res) => {
-	res.send(`<!DOCTYPE html>
-<html>
-<head>
-  <title>Client Count Page</title>
-</head>
-<body>
-  <h1>Client Count: <span id="clientCount">0</span></h1>
+app.get("/count", (req, res) => {
+	res.header("Content-Type", "text/html")
+	res.sendFile(__dirname + "/livePanel.html")
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-
-    socket.on('clientCountUpdated', (count) => {
-      document.getElementById('clientCount').textContent = count;
-    });
-  </script>
-</body>
-</html>`)
 })
 
 app.post("/listener", (req, res) => {
@@ -94,6 +82,14 @@ io.on("connection", (socket) => {
 		// Join the room associated with the shareCode
 		socket.join(shareCode)
 
+		// Increment to the sessions counter
+		if (!sessions[shareCode]) {
+			sessions[shareCode] = { count: 0, lastUpdate: "" }
+		}
+		sessions[shareCode].count++
+		sessions[shareCode].lastUpdate = new Date().toISOString()
+		io.to("admin").emit("sessions", sessions)
+
 		// Store the socket in the map
 		shareCodeSockets.set(socket.id, shareCode)
 
@@ -105,8 +101,13 @@ io.on("connection", (socket) => {
 		const shareCode = shareCodeSockets.get(socket.id)
 		socket.leave(shareCode)
 		shareCodeSockets.delete(socket.id)
-
+		clientCounter--
 		console.log(`Socket ${socket.id} left room ${shareCode}`)
+
+		// Remove from session and update
+		sessions[shareCode].count--
+		sessions[shareCode].lastUpdate = new Date().toISOString()
+		io.to("admin").emit("sessions", sessions)
 	})
 
 	socket.on("disconnect", () => {
@@ -114,6 +115,17 @@ io.on("connection", (socket) => {
 		clientCounter--
 		// Emit the updated counter to all clients
 		io.emit("clientCountUpdated", clientCounter)
+
+		// Remove the socket from the map
+		const shareCode = shareCodeSockets.get(socket.id)
+		shareCodeSockets.delete(socket.id)
+
+		// Remove from session and update
+		if (sessions[shareCode]) {
+			sessions[shareCode].count--
+			sessions[shareCode].lastUpdate = new Date().toISOString()
+			io.to("admin").emit("sessions", sessions)
+		}
 	})
 
 	// socket.on('changeShareCode', (newShareCode) => {

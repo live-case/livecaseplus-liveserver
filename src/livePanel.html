@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<title>Client Count Page</title>
+	</head>
+
+	<body>
+		<h1>Client Count: <span id="clientCount">0</span></h1>
+
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+			const socket = io();
+
+			socket.on('clientCountUpdated', (count) => {
+				document.getElementById('clientCount').textContent = count;
+			});
+		</script>
+	</body>
+
+</html>
