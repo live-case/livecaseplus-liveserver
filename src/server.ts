@@ -19,6 +19,12 @@ const origins: string[] = []
 if (process.env.ORIGINS) {
 	origins.push(...process.env.ORIGINS.split(","))
 }
+if (process.env.NODE_ENV !== "production") {
+	origins.push("http://localhost:5000")
+}
+origins.push("https://test.livecase.com.com")
+origins.push("https://www.livecase.com.com")
+origins.push("https://staging.livecase.com.com")
 const corsOptions = {
 	origin: "*", // origins,
 	methods: "GET,HEAD,PUT,PATCH,POST,DELETE"
