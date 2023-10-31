@@ -3,12 +3,14 @@ import http from "http"
 import { Server as SocketIOServer } from "socket.io"
 import cors from "cors"
 import { ILiveServerActionsServer } from "../types/ILiveServerActions"
+import IAdminPanel, { ISessions } from "../types/IAdminPanel"
 const app = express()
 const server = http.createServer(app)
 const io = new SocketIOServer(server)
 require("dotenv").config()
 
-
+const adminsRoom = "admins"
+const adminCallCatcher = "call"
 
 app.use(express.json())
 // Security
@@ -25,7 +27,32 @@ const corsOptions = {
 app.use(cors(corsOptions))
 
 let clientCounter = 0
-let sessions: { [shareCode: string]: { count: number, lastUpdate: string } } = {}
+let sessions: ISessions = {}
+
+const getOnlineCounter = () => {
+	let count = 0
+	Object.keys(sessions).forEach((key) => {
+		count += sessions[key].count || 0
+	})
+	return count
+}
+
+
+const pingAdmins = (src?: string) => {
+	const adminInfo: IAdminPanel = {
+		onlineCount: getOnlineCounter(),
+		sessions: sessions
+	}
+	console.log("===> FROM:", src || "", "ROOM:", adminsRoom, "CALL:", adminCallCatcher)
+	// The admin room specific is not emiting properly, so we emit to all
+	// io.to(adminsRoom).emit(adminCallCatcher, {
+	// 	"panel": adminInfo
+	// })
+	io.emit(adminCallCatcher, {
+		"panel": adminInfo
+	})
+}
+
 
 // Express route for serving a simple HTML file
 app.get("/", (req, res) => {
@@ -35,7 +62,11 @@ app.get("/", (req, res) => {
 app.get("/count", (req, res) => {
 	res.header("Content-Type", "text/html")
 	res.sendFile(__dirname + "/livePanel.html")
+})
 
+app.post("/admins", (req, res) => {
+	pingAdmins("API admin called")
+	res.json({ success: true })
 })
 
 app.post("/listener", (req, res) => {
@@ -68,15 +99,33 @@ app.post("/listener", (req, res) => {
 
 	io.to(shareCode).emit(body.context, body)
 
+
+	if (!sessions[shareCode]) {
+		sessions[shareCode] = { count: 0 }
+	}
+	sessions[shareCode].lastUpdate = new Date().toISOString()
+
+	pingAdmins("API listener called")
+
 	res.status(200).send("Event emitted successfully")
 })
+
 
 // Map to store sockets associated with shareCodes
 const shareCodeSockets = new Map()
 
 io.on("connection", (socket) => {
 	clientCounter++
-	io.emit("clientCountUpdated", clientCounter)
+
+	socket.on("subscribe/admin", () => {
+		socket.join(adminsRoom)
+		console.log(`Socket ${socket.id} joined room ${adminsRoom}`)
+		pingAdmins("subscribe/admin")
+	})
+	socket.on("unsubscribe/admin", () => {
+		socket.leave(adminsRoom)
+		console.log(`Socket ${socket.id} left room ${adminsRoom}`)
+	})
 
 	socket.on("subscribe", (shareCode) => {
 		// Join the room associated with the shareCode
@@ -84,16 +133,18 @@ io.on("connection", (socket) => {
 
 		// Increment to the sessions counter
 		if (!sessions[shareCode]) {
-			sessions[shareCode] = { count: 0, lastUpdate: "" }
+			sessions[shareCode] = { count: 0 }
 		}
 		sessions[shareCode].count++
 		sessions[shareCode].lastUpdate = new Date().toISOString()
-		io.to("admin").emit("sessions", sessions)
 
 		// Store the socket in the map
 		shareCodeSockets.set(socket.id, shareCode)
 
+
 		console.log(`Socket ${socket.id} joined room ${shareCode}`)
+		pingAdmins("subscribe")
+
 	})
 
 	socket.on("unsubscribe", () => {
@@ -101,45 +152,33 @@ io.on("connection", (socket) => {
 		const shareCode = shareCodeSockets.get(socket.id)
 		socket.leave(shareCode)
 		shareCodeSockets.delete(socket.id)
-		clientCounter--
-		console.log(`Socket ${socket.id} left room ${shareCode}`)
 
 		// Remove from session and update
-		if (sessions[shareCode]) {
+		if (shareCode && sessions[shareCode]) {
 			sessions[shareCode].count--
 			sessions[shareCode].lastUpdate = new Date().toISOString()
-			io.to("admin").emit("sessions", sessions)
 		}
+		console.log(`Socket ${socket.id} left room ${shareCode}`)
+		pingAdmins("unsubscribe")
 	})
 
 	socket.on("disconnect", () => {
 		// Decrement the counter when a client disconnects
 		clientCounter--
-		// Emit the updated counter to all clients
-		io.emit("clientCountUpdated", clientCounter)
 
 		// Remove the socket from the map
 		const shareCode = shareCodeSockets.get(socket.id)
 		shareCodeSockets.delete(socket.id)
 
 		// Remove from session and update
-		if (sessions[shareCode]) {
+		if (shareCode && sessions[shareCode]) {
 			sessions[shareCode].count--
 			sessions[shareCode].lastUpdate = new Date().toISOString()
-			io.to("admin").emit("sessions", sessions)
 		}
+		console.log(`Socket ${socket.id} disconnected.`)
+		pingAdmins("disconnect")
 	})
 
-	// socket.on('changeShareCode', (newShareCode) => {
-	// 	// Handle shareCode changes here and emit an event to the room
-	// 	const oldShareCode = shareCodeSockets.get(socket.id)
-	// 	socket.leave(oldShareCode)
-	// 	socket.join(newShareCode)
-	// 	shareCodeSockets.set(socket.id, newShareCode)
-
-	// 	console.log(`Socket ${socket.id} changed to room ${newShareCode}`)
-	// 	io.to(newShareCode).emit('shareCodeChanged', newShareCode)
-	// })
 })
 
 const PORT = process.env.PORT || 3001
