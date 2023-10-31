@@ -26,7 +26,7 @@ origins.push("https://test.livecase.com.com")
 origins.push("https://www.livecase.com.com")
 origins.push("https://staging.livecase.com.com")
 const corsOptions = {
-	origin: "*", // origins,
+	origin: origins, //"*", // origins,
 	methods: "GET,HEAD,PUT,PATCH,POST,DELETE"
 }
 
