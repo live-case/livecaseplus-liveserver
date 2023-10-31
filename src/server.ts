@@ -105,9 +105,11 @@ io.on("connection", (socket) => {
 		console.log(`Socket ${socket.id} left room ${shareCode}`)
 
 		// Remove from session and update
-		sessions[shareCode].count--
-		sessions[shareCode].lastUpdate = new Date().toISOString()
-		io.to("admin").emit("sessions", sessions)
+		if (sessions[shareCode]) {
+			sessions[shareCode].count--
+			sessions[shareCode].lastUpdate = new Date().toISOString()
+			io.to("admin").emit("sessions", sessions)
+		}
 	})
 
 	socket.on("disconnect", () => {
