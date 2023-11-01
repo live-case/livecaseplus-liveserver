@@ -36,7 +36,7 @@ console.log("ORIGINS:", origins)
 
 const io = new SocketIOServer(server, {
 	cors: {
-		origin: "http://localhost:5000",
+		origin: origins,
 		methods: ["GET", "POST"]
 	}
 })
