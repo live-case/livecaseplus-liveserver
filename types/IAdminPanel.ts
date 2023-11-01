@@ -1,5 +1,7 @@
+interface ISessionItem { count: number, lastUpdate?: string }
+
 export interface ISessions {
-	[shareCode: string]: { count: number, lastUpdate?: string }
+	[shareCode: string]: ISessionItem
 }
 export default interface IAdminPanel {
 	onlineCount: number

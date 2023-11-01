@@ -76,10 +76,13 @@ const getOnlineCounter = () => {
 
 
 const pingAdmins = (src?: string) => {
+
+
 	const adminInfo: IAdminPanel = {
 		onlineCount: getOnlineCounter(),
 		sessions: sessions
 	}
+
 	console.log("===> FROM:", src || "", "ROOM:", adminsRoom, "CALL:", adminCallCatcher)
 	// The admin room specific is not emiting properly, so we emit to all
 	// io.to(adminsRoom).emit(adminCallCatcher, {
@@ -194,6 +197,9 @@ io.on("connection", (socket) => {
 		if (shareCode && sessions[shareCode]) {
 			sessions[shareCode].count--
 			sessions[shareCode].lastUpdate = new Date().toISOString()
+			if (sessions[shareCode].count <= 0) {
+				delete sessions[shareCode]
+			}
 		}
 		console.log(`Socket ${socket.id} left room ${shareCode}`)
 		pingAdmins("unsubscribe")
@@ -211,6 +217,9 @@ io.on("connection", (socket) => {
 		if (shareCode && sessions[shareCode]) {
 			sessions[shareCode].count--
 			sessions[shareCode].lastUpdate = new Date().toISOString()
+			if (sessions[shareCode].count <= 0) {
+				delete sessions[shareCode]
+			}
 		}
 		console.log(`Socket ${socket.id} disconnected.`)
 		pingAdmins("disconnect")
