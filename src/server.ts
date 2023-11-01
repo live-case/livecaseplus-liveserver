@@ -29,9 +29,9 @@ if (process.env.ORIGINS) {
 	]
 }
 
-origins.push("https://test.livecase.com.com")
-origins.push("https://www.livecase.com.com")
-origins.push("https://staging.livecase.com.com")
+origins.push("https://test.livecase.com")
+origins.push("https://www.livecase.com")
+origins.push("https://staging.livecase.com")
 console.log("ORIGINS:", origins)
 
 const io = new SocketIOServer(server, {
