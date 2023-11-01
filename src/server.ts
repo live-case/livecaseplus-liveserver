@@ -6,25 +6,56 @@ import { ILiveServerActionsServer } from "../types/ILiveServerActions"
 import IAdminPanel, { ISessions } from "../types/IAdminPanel"
 const app = express()
 const server = http.createServer(app)
-const io = new SocketIOServer(server)
 require("dotenv").config()
+
+let origins: string[] = []
+
+if (process.env.ORIGINS) {
+	// if comma, split the env prigins, them them and add them
+	let envOrigins: string[] = []
+	if (process.env.ORIGINS.indexOf(",") > -1) {
+		envOrigins = process.env.ORIGINS.split(",")
+		envOrigins.forEach((o) => {
+			origins.push(o.trim())
+		})
+	} else {
+		origins.push(process.env.ORIGINS.trim())
+	}
+
+
+	origins = [
+		...origins,
+		...envOrigins
+	]
+}
+
+origins.push("https://test.livecase.com.com")
+origins.push("https://www.livecase.com.com")
+origins.push("https://staging.livecase.com.com")
+console.log("ORIGINS:", origins)
+
+const io = new SocketIOServer(server, {
+	cors: {
+		origin: "http://localhost:5000",
+		methods: ["GET", "POST"]
+	}
+})
 
 const adminsRoom = "admins"
 const adminCallCatcher = "call"
 
 app.use(express.json())
+
+app.use((req, res, next) => {
+	console.log('Request URL:', req.url)
+	console.log('Request Origin:', req.get('origin'))
+	next()
+})
+
+
 // Security
 // Configure CORS to allow requests from specific domains
-const origins: string[] = []
-if (process.env.ORIGINS) {
-	origins.push(...process.env.ORIGINS.split(","))
-}
-if (process.env.NODE_ENV !== "production") {
-	origins.push("http://localhost:5000")
-}
-origins.push("https://test.livecase.com.com")
-origins.push("https://www.livecase.com.com")
-origins.push("https://staging.livecase.com.com")
+
 const corsOptions = {
 	origin: origins, //"*", // origins,
 	methods: "GET,HEAD,PUT,PATCH,POST,DELETE"
