@@ -123,6 +123,12 @@ app.get("/size", (req, res) => {
 	})
 })
 
+setInterval(function () {
+	if (global.gc) {
+		global.gc()
+	}
+}, 1000 * 30)
+
 app.post("/listener", (req, res) => {
 
 	const body = req.body as ILiveServerActionsServer
