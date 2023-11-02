@@ -1,11 +1,16 @@
 import express from "express"
 import http from "http"
+
 import { Server as SocketIOServer } from "socket.io"
 import cors from "cors"
 import { ILiveServerActionsServer } from "../types/ILiveServerActions"
 import IAdminPanel, { ISessions } from "../types/IAdminPanel"
 const app = express()
 const server = http.createServer(app)
+
+
+
+
 require("dotenv").config()
 
 let origins: string[] = []
@@ -46,11 +51,11 @@ const adminCallCatcher = "call"
 
 app.use(express.json())
 
-app.use((req, res, next) => {
-	console.log('Request URL:', req.url)
-	console.log('Request Origin:', req.get('origin'))
-	next()
-})
+// app.use((req, res, next) => {
+// 	console.log('Request URL:', req.url)
+// 	console.log('Request Origin:', req.get('origin'))
+// 	next()
+// })
 
 
 // Security
@@ -102,10 +107,10 @@ app.get("/", (req, res) => {
 	res.send("LiveCase socket server is running. It's alive! It's alive!")
 })
 
-app.get("/count", (req, res) => {
-	res.header("Content-Type", "text/html")
-	res.sendFile(__dirname + "/livePanel.html")
-})
+// app.get("/count", (req, res) => {
+// 	res.header("Content-Type", "text/html")
+// 	res.sendFile(__dirname + "/livePanel.html")
+// })
 
 app.post("/admins", (req, res) => {
 	pingAdmins("API admin called")
