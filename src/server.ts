@@ -70,6 +70,7 @@ app.use(cors(corsOptions))
 
 let clientCounter = 0
 let sessions: ISessions = {}
+let adminCounter = 0
 // Map to store sockets associated with shareCodes
 const shareCodeSockets = new Map()
 
@@ -85,6 +86,9 @@ const getOnlineCounter = () => {
 
 const pingAdmins = (src?: string) => {
 
+	if (adminCounter <= 0) {
+		return
+	}
 
 	const adminInfo: IAdminPanel = {
 		onlineCount: getOnlineCounter(),
@@ -93,12 +97,12 @@ const pingAdmins = (src?: string) => {
 
 	console.log("===> FROM:", src || "", "ROOM:", adminsRoom, "CALL:", adminCallCatcher)
 	// The admin room specific is not emiting properly, so we emit to all
-	// io.to(adminsRoom).emit(adminCallCatcher, {
-	// 	"panel": adminInfo
-	// })
-	io.emit(adminCallCatcher, {
+	io.to(adminsRoom).emit(adminCallCatcher, {
 		"panel": adminInfo
 	})
+	// io.emit(adminCallCatcher, {
+	// 	"panel": adminInfo
+	// })
 }
 
 
@@ -177,16 +181,20 @@ app.post("/listener", (req, res) => {
 
 
 
+
 io.on("connection", (socket) => {
 	clientCounter++
 
 	socket.on("subscribe/admin", () => {
 		socket.join(adminsRoom)
+		adminCounter++
 		console.log(`Socket ${socket.id} joined room ${adminsRoom}`)
 		pingAdmins("subscribe/admin")
 	})
 	socket.on("unsubscribe/admin", () => {
 		socket.leave(adminsRoom)
+		if (adminCounter <= 0) adminCounter = 1
+		adminCounter--
 		console.log(`Socket ${socket.id} left room ${adminsRoom}`)
 	})
 
@@ -206,7 +214,7 @@ io.on("connection", (socket) => {
 
 
 		console.log(`Socket ${socket.id} joined room ${shareCode}`)
-		pingAdmins("subscribe")
+		pingAdmins("subscribe user")
 
 	})
 
@@ -225,7 +233,7 @@ io.on("connection", (socket) => {
 			}
 		}
 		console.log(`Socket ${socket.id} left room ${shareCode}`)
-		pingAdmins("unsubscribe")
+		pingAdmins("unsubscribe user")
 	})
 
 	socket.on("disconnect", () => {
@@ -245,7 +253,7 @@ io.on("connection", (socket) => {
 			}
 		}
 		console.log(`Socket ${socket.id} disconnected.`)
-		pingAdmins("disconnect")
+		pingAdmins("disconnect user")
 	})
 
 	socket.on('error', (error) => {
