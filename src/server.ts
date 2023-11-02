@@ -65,6 +65,9 @@ app.use(cors(corsOptions))
 
 let clientCounter = 0
 let sessions: ISessions = {}
+// Map to store sockets associated with shareCodes
+const shareCodeSockets = new Map()
+
 
 const getOnlineCounter = () => {
 	let count = 0
@@ -109,6 +112,17 @@ app.post("/admins", (req, res) => {
 	res.json({ success: true })
 })
 
+app.get("/size", (req, res) => {
+	const totalString = JSON.stringify(sessions) + JSON.stringify(shareCodeSockets)
+	const sizeInBytes = Buffer.byteLength(totalString, "utf8")
+	const sizeInKb = sizeInBytes / 1024
+	const sizeInMb = sizeInKb / 1024
+	res.json({
+		sizeInKb,
+		sizeInMb
+	})
+})
+
 app.post("/listener", (req, res) => {
 
 	const body = req.body as ILiveServerActionsServer
@@ -151,8 +165,6 @@ app.post("/listener", (req, res) => {
 })
 
 
-// Map to store sockets associated with shareCodes
-const shareCodeSockets = new Map()
 
 io.on("connection", (socket) => {
 	clientCounter++
