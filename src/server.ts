@@ -248,6 +248,14 @@ io.on("connection", (socket) => {
 		pingAdmins("disconnect")
 	})
 
+	socket.on('error', (error) => {
+		console.log(`
+		======
+		Socket ${socket.id} encountered an error: ${error.message}
+		======`)
+		// Handle the error or disconnect the client if necessary
+	})
+
 })
 
 const PORT = process.env.PORT || 3001
