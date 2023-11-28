@@ -97,12 +97,12 @@ const pingAdmins = (src?: string) => {
 
 	console.log("===> FROM:", src || "", "ROOM:", adminsRoom, "CALL:", adminCallCatcher)
 	// The admin room specific is not emiting properly, so we emit to all
-	io.to(adminsRoom).emit(adminCallCatcher, {
-		"panel": adminInfo
-	})
-	// io.emit(adminCallCatcher, {
+	// io.to(adminsRoom).emit(adminCallCatcher, {
 	// 	"panel": adminInfo
 	// })
+	io.emit(adminCallCatcher, {
+		"panel": adminInfo
+	})
 }
 
 
