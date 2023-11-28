@@ -46,8 +46,7 @@ const io = new SocketIOServer(server, {
 	}
 })
 
-const adminsRoom = "admins"
-const adminCallCatcher = "call"
+
 
 app.use(express.json())
 
@@ -84,25 +83,65 @@ const getOnlineCounter = () => {
 }
 
 
-const pingAdmins = (src?: string) => {
+const adminsRoom = "admins"
+const adminCallCatcher = "adminsCall"
 
-	if (adminCounter <= 0) {
-		return
+const getRoomsAndUsersCount = (): ISessions => {
+	const rooms = io.sockets.adapter.rooms
+
+	// Iterate over the rooms
+	rooms.forEach((value, key) => {
+		if (key === adminsRoom) return
+		// Check if the key is a room (not a socket ID)
+		if (!io.sockets.sockets.get(key)) {
+			sessions[key] = {
+				...(sessions[key] || {}),
+				count: value.size,
+				// Add any other properties you need here
+			}
+		}
+	})
+
+	// Or return the information if needed in your application
+	return sessions
+}
+
+const getOnlineCount = (): number => {
+	let onlineCount = 0
+
+	// Iterate over sessions and sum up the 'count' property
+	for (const shareCode in sessions) {
+		if (sessions.hasOwnProperty(shareCode)) {
+			onlineCount += sessions[shareCode].count
+		}
 	}
 
+	return onlineCount
+}
+
+
+const pingAdmins = async (src?: string) => {
+	console.log("ADMINS")
+
+	getRoomsAndUsersCount()
+
+
 	const adminInfo: IAdminPanel = {
-		onlineCount: getOnlineCounter(),
-		sessions: sessions
+		onlineCount: getOnlineCount(),
+		sessions: getRoomsAndUsersCount()
 	}
 
 	console.log("===> FROM:", src || "", "ROOM:", adminsRoom, "CALL:", adminCallCatcher)
-	// The admin room specific is not emiting properly, so we emit to all
-	// io.to(adminsRoom).emit(adminCallCatcher, {
-	// 	"panel": adminInfo
-	// })
-	io.emit(adminCallCatcher, {
+	console.log("===> ADMIN INFO:", adminInfo)
+
+
+	// The admin room specific is not emiting properly
+	io.to(adminsRoom).emit(adminCallCatcher, {
 		"panel": adminInfo
 	})
+	// io.emit(adminCallCatcher, {
+	// 	"panel": adminInfo
+	// })
 }
 
 
@@ -185,13 +224,15 @@ app.post("/listener", (req, res) => {
 io.on("connection", (socket) => {
 	clientCounter++
 
-	socket.on("subscribe/admin", () => {
+	socket.on(`subscribe/${adminsRoom}`, () => {
 		socket.join(adminsRoom)
 		adminCounter++
 		console.log(`Socket ${socket.id} joined room ${adminsRoom}`)
-		pingAdmins("subscribe/admin")
+		setTimeout(() => {
+			pingAdmins(`subscribe/${adminsRoom}`)
+		}, 3000)
 	})
-	socket.on("unsubscribe/admin", () => {
+	socket.on(`unsubscribe/${adminsRoom}`, () => {
 		socket.leave(adminsRoom)
 		if (adminCounter <= 0) adminCounter = 1
 		adminCounter--
