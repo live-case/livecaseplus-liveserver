@@ -94,10 +94,15 @@ const getRoomsAndUsersCount = (): ISessions => {
 		if (key === adminsRoom) return
 		// Check if the key is a room (not a socket ID)
 		if (!io.sockets.sockets.get(key)) {
-			sessions[key] = {
-				...(sessions[key] || {}),
-				count: value.size,
-				// Add any other properties you need here
+			const count = value.size
+			if (count <= 0) {
+				delete sessions[key]
+			} else {
+				sessions[key] = {
+					...(sessions[key] || {}),
+					count: value.size,
+					// Add any other properties you need here
+				}
 			}
 		}
 	})
