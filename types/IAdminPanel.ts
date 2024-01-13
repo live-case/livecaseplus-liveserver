@@ -1,3 +1,5 @@
+import { ILiveServerActionsServer } from "./ILiveServerActions"
+
 interface ISessionItem { count: number, lastUpdate?: string }
 
 export interface ISessions {
@@ -6,6 +8,7 @@ export interface ISessions {
 export default interface IAdminPanel {
 	onlineCount: number
 	sessions: ISessions
+	events: ILiveServerActionsServer[]
 }
 
 export interface IAdminPings {

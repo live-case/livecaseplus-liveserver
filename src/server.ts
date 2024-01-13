@@ -3,7 +3,7 @@ import http from "http"
 
 import { Server as SocketIOServer } from "socket.io"
 import cors from "cors"
-import { ILiveServerActionsServer } from "../types/ILiveServerActions"
+import { ILiveServerActionsServer, ILiveServerActionsServerEvent } from "../types/ILiveServerActions"
 import IAdminPanel, { ISessions } from "../types/IAdminPanel"
 const app = express()
 const server = http.createServer(app)
@@ -70,6 +70,7 @@ app.use(cors(corsOptions))
 let clientCounter = 0
 let sessions: ISessions = {}
 let adminCounter = 0
+let events: ILiveServerActionsServerEvent[] = []
 // Map to store sockets associated with shareCodes
 const shareCodeSockets = new Map()
 
@@ -111,6 +112,8 @@ const getRoomsAndUsersCount = (): ISessions => {
 	return sessions
 }
 
+
+
 const getOnlineCount = (): number => {
 	let onlineCount = 0
 
@@ -126,18 +129,20 @@ const getOnlineCount = (): number => {
 
 
 const pingAdmins = async (src?: string) => {
-	console.log("ADMINS")
+
 
 	getRoomsAndUsersCount()
 
 
 	const adminInfo: IAdminPanel = {
 		onlineCount: getOnlineCount(),
-		sessions: getRoomsAndUsersCount()
+		sessions: getRoomsAndUsersCount(),
+		events: events
 	}
 
-	console.log("===> FROM:", src || "", "ROOM:", adminsRoom, "CALL:", adminCallCatcher)
-	console.log("===> ADMIN INFO:", adminInfo)
+	// console.log("ADMINS")
+	// console.log("===> FROM:", src || "", "ROOM:", adminsRoom, "CALL:", adminCallCatcher)
+	// console.log("===> ADMIN INFO:", adminInfo)
 
 
 	// The admin room specific is not emiting properly
@@ -211,6 +216,16 @@ app.post("/listener", (req, res) => {
 
 
 	io.to(shareCode).emit(body.context, body)
+
+	// Add to events
+	const newEvent: ILiveServerActionsServerEvent = {
+		...body,
+		createdAt: new Date().toISOString()
+	}
+	events.unshift(newEvent)
+	if (events.length > 100) {
+		events.splice(100, events.length - 100)
+	}
 
 
 	if (!sessions[shareCode]) {

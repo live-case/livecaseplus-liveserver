@@ -26,3 +26,7 @@ export default ILiveServerActions
 export type ILiveServerActionsServer = ILiveServerActions & {
 	secret?: string
 }
+
+export type ILiveServerActionsServerEvent = ILiveServerActionsServer & {
+	createdAt: string
+}
