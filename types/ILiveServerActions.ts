@@ -20,7 +20,38 @@ export type ILiveServerActionNewPlayer = {
 	type: "newPlayer"
 }
 
-type ILiveServerActions = ILiveServerActionRewind | ILiveServerActionHostUpdate | ILiveServerActionNewPlayer
+export type ILiveServerActionPlayerFinishedEpisode = {
+	context: "session",
+	shareCode: string,
+	type: "playerFinishedEpisode"
+}
+
+export type ILiveServerActionMessage = {
+	context: "session",
+	shareCode: string,
+	type: "message",
+	data: {
+		type?: "error" | "success" | "info",
+		timeout?: number,
+		message: string,
+		id: string
+	}
+}
+
+export type ILiveServerActionPlayerAiFeedback = {
+	context: "session",
+	shareCode: string,
+	type: "playerAiFeedback",
+	data: {
+		playId: string,
+		chatId: string,
+		aiFeedback?: string,
+		grade?: number
+	}
+}
+
+type ILiveServerActions = ILiveServerActionRewind | ILiveServerActionHostUpdate | ILiveServerActionNewPlayer | ILiveServerActionMessage | ILiveServerActionPlayerFinishedEpisode
+	| ILiveServerActionPlayerAiFeedback
 export default ILiveServerActions
 
 export type ILiveServerActionsServer = ILiveServerActions & {
